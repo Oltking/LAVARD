@@ -1,0 +1,16 @@
+# Private: do not commit any of our work — research, build plan, or source.
+# Ignore everything at every level; only this .gitignore is tracked.
+/*
+!.gitignore
+
+# Belt-and-suspenders for common junk/secrets in case the rule above is relaxed later.
+.env
+*.env
+__pycache__/
+*.pyc
+.venv/
+.idea/
+.vscode/
+*.log
+dist/
+build/
