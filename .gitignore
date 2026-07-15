@@ -1,16 +1,43 @@
-# Private: do not commit any of our work — research, build plan, or source.
-# Ignore everything at every level; only this .gitignore is tracked.
-/*
-!.gitignore
-
-# Belt-and-suspenders for common junk/secrets in case the rule above is relaxed later.
+# ── Secrets & credentials — NEVER commit ─────────────────────────────
 .env
-*.env
+.env.*
+!.env.example
+*.key
+*.pem
+*credential*
+
+# ── Python ───────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
 .venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Local runtime data ───────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# ── OS / editor ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
 .idea/
 .vscode/
-*.log
-dist/
-build/
+
+# ── Local agent / tooling state ──────────────────────────────────────
+.claude/
+.agents/
+
+# ── Private planning + harvested third-party docs (keep out of public repo) ──
+/LAVARD_BUILD_SPEC.md
+/docs/vendor/
+
+# ── Temp assets ──────────────────────────────────────────────────────
+/logo_avatar.png

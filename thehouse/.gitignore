@@ -1,0 +1,46 @@
+# --- Never commit: spec / research / plan files ---
+TheHouse_BUILD_SPEC.md
+QUESTIONS.md
+docs/vendor/
+docs/research/
+*PLAN*.md
+*SPEC*.md
+*RESEARCH*.md
+NOTES*.md
+.claude/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.python-version
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Env & secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# --- Data / local infra ---
+*.db
+*.sqlite3
+qdrant_storage/
+redis-data/
+pg-data/

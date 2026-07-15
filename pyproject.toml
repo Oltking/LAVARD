@@ -1,0 +1,16 @@
+[project]
+name = "lavard"
+version = "0.1.0"
+description = "LAVARD — orchestration Agent Service Provider for OKX AI."
+requires-python = ">=3.11"
+readme = "README.md"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests", "thehouse/tests"]
+addopts = "-q"
+# TheHouse's suite is async (asyncio_mode=auto); harmless to LAVARD's sync tests.
+asyncio_mode = "auto"
+
+[tool.setuptools]
+packages = ["core", "api", "cli", "thehouse"]

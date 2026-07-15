@@ -1,0 +1,28 @@
+# Local infra for LAVARD (prod-shaped). Phase 1 runs fine WITHOUT this (SQLite + inline queue);
+# bring it up when you want the production-shaped stack.
+#   docker compose -f infra/docker-compose.yml up -d
+# then set:
+#   LAVARD_DATABASE_URL=postgresql+psycopg://lavard:lavard@localhost:5432/lavard
+#   LAVARD_REDIS_URL=redis://localhost:6379/0
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lavard
+      POSTGRES_PASSWORD: lavard
+      POSTGRES_DB: lavard
+    ports: ["5432:5432"]
+    volumes: ["lavard_pg:/var/lib/postgresql/data"]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  qdrant:
+    image: qdrant/qdrant:latest   # semantic memory + cache (Phases 6/7)
+    ports: ["6333:6333", "6334:6334"]
+    volumes: ["lavard_qdrant:/qdrant/storage"]
+
+volumes:
+  lavard_pg:
+  lavard_qdrant:

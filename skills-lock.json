@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "okx-agent-payments-protocol": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-agent-payments-protocol/SKILL.md",
+      "computedHash": "d452a72f24bc0eb638357cd4efeb0fd82c9b653bc7696dedc89da645b50fbc04"
+    },
+    "okx-agentic-wallet": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-agentic-wallet/SKILL.md",
+      "computedHash": "3427f1256fed788756931e2906938d40e81cfb35d417b1d764f2f490dc2ca5e8"
+    },
+    "okx-ai": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-ai/SKILL.md",
+      "computedHash": "71737106ab85e4f843428ce2255d923ebd41f4bf50e8ad3b7bf6360288e2543c"
+    },
+    "okx-dapp-discovery": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-dapp-discovery/SKILL.md",
+      "computedHash": "1609b0bfe5a8a287f93c76c47d80a2bd19f16b5eeac344b4e16135b4023f3e96"
+    },
+    "okx-defi": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-defi/SKILL.md",
+      "computedHash": "ed22280e28ffbd78e9f8aabe431f74e19d07ff17889a5f4739905e6c30268bc1"
+    },
+    "okx-dex-market": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-dex-market/SKILL.md",
+      "computedHash": "cf20b6ae72131a7a03521cc7a3368597cee0f10d0bb68af5e34550c1c9a1f791"
+    },
+    "okx-growth-competition": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-growth-competition/SKILL.md",
+      "computedHash": "3be51831ce0f083d3adc57d9978e351894bf7fcf148a767dcc572fb0d47073a2"
+    },
+    "okx-guide": {
+      "source": "okx/onchainos-skills",
+      "sourceType": "github",
+      "skillPath": "skills/okx-guide/SKILL.md",
+      "computedHash": "67a55a82d25fd5cf5d02ddd43426663dd0ecc7a17ac52336e9a79f79e4fdcf24"
+    }
+  }
+}

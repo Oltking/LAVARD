@@ -1,0 +1,20 @@
+{
+  "description": "Labeled steps for the Router's cheapest-accurate tier classifier (§4.4).",
+  "cases": [
+    {"text": "Define what a rollup is", "tier": "trivial"},
+    {"text": "Look up the ticker symbol for OKB", "tier": "trivial"},
+    {"text": "What is the price of ETH", "tier": "trivial"},
+    {"text": "List the top 3 L2s", "tier": "trivial"},
+    {"text": "Summarize this paragraph in one line", "tier": "routine"},
+    {"text": "Draft a short intro sentence", "tier": "routine"},
+    {"text": "Rephrase this note more clearly", "tier": "routine"},
+    {"text": "Plan the decomposition of this goal into sub-tasks", "tier": "complex"},
+    {"text": "Design the architecture for the comparison report", "tier": "complex"},
+    {"text": "Analyze and compare the throughput of three rollups", "tier": "complex"},
+    {"text": "Evaluate the strategy for the launch", "tier": "complex"},
+    {"text": "Produce the Vetter verdict on this agent before we hire", "tier": "critical"},
+    {"text": "Decide whether to spend from escrow", "tier": "critical"},
+    {"text": "Release the escrow and settle payment", "tier": "critical"},
+    {"text": "Sign-off and pay the hired agent", "tier": "critical"}
+  ]
+}
