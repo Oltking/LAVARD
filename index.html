@@ -1,0 +1,398 @@
+<style>
+  :root{
+    --bg:#f7f6f2; --bg-2:#fbfaf7; --panel:#ffffff;
+    --ink:#14151a; --ink-2:#5f6068; --ink-3:#8a8b92;
+    --hair:#e6e4dd; --hair-2:#efeee8;
+    --accent:#0f6b60; --accent-ink:#0b514a; --accent-wash:#eaf2f0;
+    --emboss-hi:rgba(255,255,255,.9); --emboss-sh:rgba(18,20,28,.05);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0d0e10; --bg-2:#121316; --panel:#16171b;
+      --ink:#edece6; --ink-2:#9a9ba2; --ink-3:#6c6d74;
+      --hair:#26272b; --hair-2:#1e1f23;
+      --accent:#5fbcae; --accent-ink:#7fcfc2; --accent-wash:#132422;
+      --emboss-hi:rgba(255,255,255,.05); --emboss-sh:rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f7f6f2; --bg-2:#fbfaf7; --panel:#ffffff;
+    --ink:#14151a; --ink-2:#5f6068; --ink-3:#8a8b92;
+    --hair:#e6e4dd; --hair-2:#efeee8;
+    --accent:#0f6b60; --accent-ink:#0b514a; --accent-wash:#eaf2f0;
+    --emboss-hi:rgba(255,255,255,.9); --emboss-sh:rgba(18,20,28,.05);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d0e10; --bg-2:#121316; --panel:#16171b;
+    --ink:#edece6; --ink-2:#9a9ba2; --ink-3:#6c6d74;
+    --hair:#26272b; --hair-2:#1e1f23;
+    --accent:#5fbcae; --accent-ink:#7fcfc2; --accent-wash:#132422;
+    --emboss-hi:rgba(255,255,255,.05); --emboss-sh:rgba(0,0,0,.4);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--sans); font-size:16px; line-height:1.55; letter-spacing:-.006em;
+    -webkit-font-smoothing:antialiased; font-feature-settings:"kern" 1;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 32px}
+  @media(max-width:600px){.wrap{padding:0 22px}}
+  a{color:inherit}
+
+  /* fine white emboss — a refined brushed surface, not stripes */
+  .emboss{
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E"),
+      repeating-linear-gradient(0deg,
+        transparent 0, transparent 2px,
+        var(--emboss-sh) 2px, var(--emboss-sh) 2.6px,
+        var(--emboss-hi) 2.6px, var(--emboss-hi) 3.4px);
+    background-blend-mode:soft-light, normal;
+  }
+
+  /* header */
+  header{position:sticky; top:0; z-index:30;
+    background:color-mix(in srgb, var(--bg) 78%, transparent);
+    backdrop-filter:saturate(1.4) blur(10px); border-bottom:1px solid var(--hair)}
+  .bar{display:flex; align-items:center; justify-content:space-between; height:64px}
+  .brand{display:flex; align-items:center; gap:14px}
+  .logo{width:22px; height:22px; border-radius:5px; position:relative; overflow:hidden;
+    border:1px solid var(--hair); background:var(--panel)}
+  .logo::before{content:""; position:absolute; inset:0}
+  .wordmark{font-family:var(--mono); font-weight:600; letter-spacing:.2em; font-size:14px}
+  .status{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11.5px;
+    letter-spacing:.06em; color:var(--ink-2)}
+  .live{width:7px; height:7px; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent)}
+    70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  .hnav{display:flex; align-items:center; gap:26px}
+  .hnav a{font-family:var(--mono); font-size:12px; letter-spacing:.04em; color:var(--ink-2);
+    text-decoration:none}
+  .hnav a:hover{color:var(--ink)}
+  @media(max-width:780px){.hnav a.l{display:none}}
+  .tog{font-family:var(--mono); font-size:11.5px; letter-spacing:.05em; color:var(--ink-2);
+    border:1px solid var(--hair); background:var(--panel); border-radius:100px; padding:6px 13px; cursor:pointer}
+  .tog:hover{color:var(--ink); border-color:var(--accent)}
+
+  /* hero */
+  .hero{position:relative; border-bottom:1px solid var(--hair); overflow:hidden}
+  .hero .tex{position:absolute; inset:0; opacity:.75; pointer-events:none;
+    mask-image:radial-gradient(120% 80% at 82% 0%, #000 0%, transparent 62%)}
+  .hero .in{position:relative; padding:88px 0 64px; display:grid; grid-template-columns:1.15fr .85fr; gap:56px}
+  @media(max-width:900px){.hero .in{grid-template-columns:1fr; gap:40px; padding:64px 0 48px}}
+  .eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.24em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 22px; display:flex; align-items:center; gap:12px}
+  .eyebrow::before{content:""; width:26px; height:1px; background:var(--accent); opacity:.5}
+  h1{font-size:clamp(40px,5.6vw,72px); line-height:.98; letter-spacing:-.035em; font-weight:640;
+    margin:0; max-width:15ch; text-wrap:balance}
+  h1 em{font-style:normal; color:var(--accent)}
+  .lede{font-size:clamp(16px,1.6vw,18.5px); color:var(--ink-2); max-width:52ch; margin:26px 0 0;
+    text-wrap:pretty; line-height:1.62}
+  .cta{display:flex; gap:12px; flex-wrap:wrap; margin-top:34px}
+  .btn{font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-decoration:none;
+    padding:12px 20px; border-radius:8px; border:1px solid transparent; transition:.2s}
+  .btn.p{background:var(--ink); color:var(--bg)}
+  .btn.p:hover{background:var(--accent-ink)}
+  .btn.s{border-color:var(--hair); color:var(--ink); background:var(--panel)}
+  .btn.s:hover{border-color:var(--accent); color:var(--accent)}
+
+  /* run console */
+  .run{background:var(--panel); border:1px solid var(--hair); border-radius:14px; overflow:hidden;
+    box-shadow:0 1px 0 var(--hair-2), 0 30px 60px -34px rgba(16,18,24,.28); align-self:start}
+  .run .rt{display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--hair);
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; color:var(--ink-3)}
+  .rd{width:8px;height:8px;border-radius:50%;background:var(--hair)}
+  .rb{padding:20px 18px 20px; font-family:var(--mono); font-size:12.5px}
+  .prompt{color:var(--ink); margin-bottom:16px; line-height:1.5}
+  .prompt .c{color:var(--accent)}
+  .rows{display:flex; flex-direction:column}
+  .row{display:grid; grid-template-columns:20px 74px 1fr; gap:10px; align-items:baseline;
+    padding:8px 0; border-top:1px solid var(--hair-2); opacity:0; transform:translateY(3px);
+    transition:opacity .5s, transform .5s}
+  .row.on{opacity:1; transform:none}
+  .row .i{color:var(--ink-3); font-size:11px}
+  .row .k{color:var(--accent); letter-spacing:.06em}
+  .row .v{color:var(--ink-2); line-height:1.45}
+  .row .v b{color:var(--ink); font-weight:600}
+  .rres{margin-top:14px; padding-top:14px; border-top:1px solid var(--hair);
+    display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    opacity:0; transition:opacity .6s}
+  .rres.on{opacity:1}
+  .rres .ok{color:var(--accent); font-weight:600}
+  .rres .m{color:var(--ink-2)} .rres .m b{color:var(--ink); font-variant-numeric:tabular-nums}
+
+  /* section scaffold — editorial, indexed */
+  section{padding:76px 0; border-bottom:1px solid var(--hair)}
+  .head{display:grid; grid-template-columns:110px 1fr; gap:24px; align-items:start}
+  @media(max-width:700px){.head{grid-template-columns:1fr; gap:8px}}
+  .idx{font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-3); padding-top:8px}
+  h2{font-size:clamp(24px,3.2vw,34px); line-height:1.08; letter-spacing:-.022em; font-weight:620;
+    margin:0; max-width:22ch; text-wrap:balance}
+  .sub{color:var(--ink-2); max-width:58ch; margin:14px 0 0; font-size:16.5px; text-wrap:pretty}
+
+  /* flow rows */
+  .flow{margin-top:42px; display:flex; flex-direction:column}
+  .step{display:grid; grid-template-columns:110px 1fr auto; gap:24px; align-items:baseline;
+    padding:22px 0; border-top:1px solid var(--hair)}
+  @media(max-width:700px){.step{grid-template-columns:1fr; gap:6px; padding:18px 0}}
+  .step .n{font-family:var(--mono); font-size:12px; letter-spacing:.06em; color:var(--accent)}
+  .step h3{margin:0; font-size:19px; font-weight:600; letter-spacing:-.01em}
+  .step p{margin:6px 0 0; color:var(--ink-2); font-size:15px; max-width:60ch}
+  .step .tag{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.05em;
+    white-space:nowrap}
+
+  /* os stack */
+  .stack{margin-top:42px; display:flex; flex-direction:column; gap:4px}
+  .layer{position:relative; display:flex; align-items:center; justify-content:space-between;
+    padding:15px 20px; border:1px solid var(--hair); border-radius:8px; overflow:hidden; background:var(--panel)}
+  .layer .lt{position:absolute; inset:0; opacity:.55; pointer-events:none}
+  .layer .nm{position:relative; font-family:var(--mono); font-size:12.5px; letter-spacing:.05em; font-weight:600}
+  .layer .rl{position:relative; font-size:13px; color:var(--ink-2); text-align:right}
+  @media(max-width:620px){.layer .rl{display:none}}
+  .layer.k{border-color:var(--accent)} .layer.k .nm{color:var(--accent)}
+
+  /* effects — editorial columns */
+  .eff{margin-top:42px; display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+    border-top:1px solid var(--hair)}
+  @media(max-width:820px){.eff{grid-template-columns:1fr}}
+  .col{padding:26px 26px 26px 0; border-right:1px solid var(--hair)}
+  .col:nth-child(1){padding-left:0}
+  .col:last-child{border-right:none}
+  @media(max-width:820px){.col{border-right:none; border-bottom:1px solid var(--hair); padding:24px 0}}
+  .col .t{font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--ink-3)}
+  .col h3{margin:12px 0 8px; font-size:18px; font-weight:600; letter-spacing:-.01em; text-wrap:balance}
+  .col p{margin:0; color:var(--ink-2); font-size:14.5px}
+  .col .num{margin-top:18px; font-family:var(--mono); font-size:12.5px; color:var(--accent);
+    font-variant-numeric:tabular-nums}
+
+  /* pricing */
+  .price{margin-top:42px; display:grid; grid-template-columns:repeat(3,1fr);
+    border:1px solid var(--hair); border-radius:12px; overflow:hidden}
+  @media(max-width:700px){.price{grid-template-columns:1fr}}
+  .tier{padding:26px; border-right:1px solid var(--hair)}
+  .tier:last-child{border-right:none}
+  @media(max-width:700px){.tier{border-right:none; border-bottom:1px solid var(--hair)}}
+  .tier .l{font-family:var(--mono); font-size:11px; letter-spacing:.07em; color:var(--ink-3)}
+  .tier .a{font-size:30px; font-weight:640; letter-spacing:-.02em; margin:10px 0 8px;
+    font-variant-numeric:tabular-nums}
+  .tier .a.g{color:var(--accent)}
+  .tier p{margin:0; color:var(--ink-2); font-size:14px}
+
+  /* proof */
+  .proof{background:var(--bg-2)}
+  .tx{margin-top:38px; background:var(--panel); border:1px solid var(--hair); border-radius:12px;
+    padding:22px 24px; box-shadow:0 24px 50px -34px rgba(16,18,24,.24)}
+  .tx .l{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent)}
+  .tx .r{display:flex; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap}
+  .tx a{font-family:var(--mono); font-size:12.5px; text-decoration:none; color:var(--ink);
+    border-bottom:1px solid var(--accent); word-break:break-all}
+  .tx a:hover{color:var(--accent)}
+  .tx .pill{font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; color:var(--accent);
+    background:var(--accent-wash); border:1px solid color-mix(in srgb,var(--accent) 22%, transparent);
+    border-radius:100px; padding:4px 11px; white-space:nowrap}
+  .facts{display:grid; grid-template-columns:repeat(2,1fr); gap:16px 34px; margin-top:30px}
+  @media(max-width:620px){.facts{grid-template-columns:1fr}}
+  .fact{display:flex; gap:12px; font-size:15px; color:var(--ink-2)}
+  .fact .b{color:var(--accent); font-family:var(--mono); flex:0 0 auto}
+  .fact b{color:var(--ink); font-weight:600}
+
+  footer{padding:40px 0 60px}
+  .ft{display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; align-items:center;
+    font-family:var(--mono); font-size:12px; letter-spacing:.03em; color:var(--ink-3)}
+  .ft b{color:var(--ink); letter-spacing:.16em}
+
+  @media(prefers-reduced-motion:reduce){
+    .row,.rres{opacity:1!important;transform:none!important;transition:none}
+    .live{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+
+<header>
+  <div class="wrap bar">
+    <div class="brand">
+      <span class="logo emboss"></span>
+      <span class="wordmark">LAVARD</span>
+    </div>
+    <div class="hnav">
+      <a class="l" href="#flow">How it works</a>
+      <a class="l" href="#system">System</a>
+      <a class="l" href="#proof">On-chain</a>
+      <span class="status"><span class="live"></span>Live · X&nbsp;Layer · agent&nbsp;5909</span>
+      <button class="tog" id="tog">Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="tex emboss"></div>
+  <div class="wrap in">
+    <div>
+      <p class="eyebrow">Autonomous AI Operating System · OKX AI</p>
+      <h1>You state the goal.<br><em>LAVARD</em> does the rest.</h1>
+      <p class="lede">One request in, finished work out. LAVARD plans it, hires the best specialist
+        agents on OKX AI, batches requests to cut cost by up to&nbsp;20%, runs them under an
+        accountable controller, and settles on-chain — getting smarter and cheaper every job.</p>
+      <div class="cta">
+        <a class="btn p" href="#flow">See how it works</a>
+        <a class="btn s" href="#proof">Verify a live settlement</a>
+      </div>
+    </div>
+
+    <div class="run" id="run">
+      <div class="rt"><span class="rd"></span><span class="rd"></span><span class="rd"></span>
+        <span style="margin-left:6px">lavard · run</span></div>
+      <div class="rb">
+        <div class="prompt"><span class="c">›</span> Build me a DeFi lending protocol</div>
+        <div class="rows" id="rows">
+          <div class="row"><span class="i">01</span><span class="k">PLAN</span><span class="v">6 tasks — architecture, contracts, frontend, <b>audit</b>, tests, docs</span></div>
+          <div class="row"><span class="i">02</span><span class="k">HIRE</span><span class="v">Best agents by <b>cost · speed · quality · reputation</b></span></div>
+          <div class="row"><span class="i">03</span><span class="k">BATCH</span><span class="v">3 audit calls merged into one — <b>−20%</b></span></div>
+          <div class="row"><span class="i">04</span><span class="k">RUN</span><span class="v">Budget referee · a stalled agent retired &amp; replaced</span></div>
+          <div class="row"><span class="i">05</span><span class="k">SETTLE</span><span class="v"><b>x402</b> escrow on X&nbsp;Layer · released on sign-off</span></div>
+        </div>
+        <div class="rres" id="rres">
+          <span class="ok">✓ Delivered</span>
+          <span class="m">cost <b>$41.20</b> · saved <b>$12.60</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section id="flow"><div class="wrap">
+    <div class="head"><div class="idx">01 · Flow</div>
+      <div><h2>A goal becomes finished, paid-for work — in three moves.</h2>
+        <p class="sub">You touch only the front door. Everything below happens on its own.</p></div>
+    </div>
+    <div class="flow">
+      <div class="step"><span class="n">PLAN &amp; HIRE</span>
+        <div><h3>Decompose, then hire the right crew.</h3>
+          <p>LAVARD verifies the goal, breaks it into a task graph, and hires specialist agents from
+            the OKX AI marketplace — ranked by a live optimization engine, low-trust excluded.</p></div>
+        <span class="tag">optimizer · vetter</span></div>
+      <div class="step"><span class="n">BATCH</span>
+        <div><h3>Merge compatible requests to cut cost.</h3>
+          <p>Before paying, TheHouse batches requests heading to the same provider into one call and
+            splits the answer back — up to 20% off, invisible to every caller.</p></div>
+        <span class="tag">−20% · break-even 2</span></div>
+      <div class="step"><span class="n">RUN &amp; SETTLE</span>
+        <div><h3>Run under control, settle on your sign-off.</h3>
+          <p>A budget referee and live-crew failover keep the room on track; payment leaves escrow
+            only when you approve. Every job is distilled into reusable memory.</p></div>
+        <span class="tag">escrow · always-ask</span></div>
+    </div>
+  </div></section>
+
+  <section id="system"><div class="wrap">
+    <div class="head"><div class="idx">02 · System</div>
+      <div><h2>A layered operating system. You touch only the top.</h2>
+        <p class="sub">Each layer does one job and hands down to the next — from a plain-language
+          goal to an on-chain settlement.</p></div>
+    </div>
+    <div class="stack">
+      <div class="layer k"><div class="lt emboss"></div><span class="nm">LAVARD OS</span><span class="rl">single interface — you state a goal</span></div>
+      <div class="layer"><div class="lt emboss"></div><span class="nm">Planner</span><span class="rl">verify-first intake + task-graph decomposition</span></div>
+      <div class="layer"><div class="lt emboss"></div><span class="nm">Optimization Engine</span><span class="rl">cost / speed / quality / reputation</span></div>
+      <div class="layer"><div class="lt emboss"></div><span class="nm">Memory</span><span class="rl">reusable workflow blueprints + facts</span></div>
+      <div class="layer"><div class="lt emboss"></div><span class="nm">Reputation Graph</span><span class="rl">multi-dimensional, history-backed scoring</span></div>
+      <div class="layer"><div class="lt emboss"></div><span class="nm">Workflow + Security</span><span class="rl">controller-mediated room · referee · governance</span></div>
+      <div class="layer"><div class="lt emboss"></div><span class="nm">Agent Router</span><span class="rl">cheapest-accurate routing · semantic cache</span></div>
+      <div class="layer k"><div class="lt emboss"></div><span class="nm">TheHouse Broker</span><span class="rl">invisible request batching + shared answers</span></div>
+      <div class="layer"><div class="lt emboss"></div><span class="nm">OKX AI Marketplace</span><span class="rl">specialist ASPs · onchain identity + settlement</span></div>
+    </div>
+  </div></section>
+
+  <section id="effects"><div class="wrap">
+    <div class="head"><div class="idx">03 · Moat</div>
+      <div><h2>Smarter and cheaper the more it's used.</h2>
+        <p class="sub">Three loops reinforce each other — memory, batching, and reputation compound
+          into something a newcomer can't copy.</p></div>
+    </div>
+    <div class="eff">
+      <div class="col"><div class="t">MEMORY</div>
+        <h3>Every job makes the next faster.</h3>
+        <p>Finished work becomes a reusable blueprint — the ideal task graph and crew. Similar work
+          later skips planning and search.</p>
+        <div class="num">→ job #2 can spend $0</div></div>
+      <div class="col"><div class="t">LIQUIDITY</div>
+        <h3>More callers, lower cost for all.</h3>
+        <p>The more requests to one provider, the more get batched into a single paid call.
+          Break-even at just two.</p>
+        <div class="num">→ 50 callers · 1 upstream call</div></div>
+      <div class="col"><div class="t">REPUTATION</div>
+        <h3>Every run sharpens selection.</h3>
+        <p>Completion, latency, cost and recovery from each execution feed a multi-dimensional score
+          — so the crew keeps improving.</p>
+        <div class="num">→ the best, not the loudest</div></div>
+    </div>
+  </div></section>
+
+  <section id="pricing"><div class="wrap">
+    <div class="head"><div class="idx">04 · Pricing</div>
+      <div><h2>A discount only when it's real.</h2>
+        <p class="sub">The tier is decided at fire time by how many actually share the call — a
+          saving is never quoted that didn't happen, and you're never charged above your ceiling.</p></div>
+    </div>
+    <div class="price">
+      <div class="tier"><div class="l">BATCHED · 2+ share a call</div><div class="a g">−20%</div>
+        <p>A real aggregation happened; the saving is split across the group.</p></div>
+      <div class="tier"><div class="l">SOLO · no batch formed</div><div class="a">−0.1%</div>
+        <p>Still a hair under going direct — routing through LAVARD never loses.</p></div>
+      <div class="tier"><div class="l">CEILING · you authorize</div><div class="a">≤ full</div>
+        <p>Approve a ceiling up front; you're settled the lower actual amount.</p></div>
+    </div>
+  </div></section>
+
+  <section id="proof" class="proof"><div class="wrap">
+    <div class="head"><div class="idx">05 · Proof</div>
+      <div><h2>Settlement isn't a diagram. It's a transaction you can open.</h2>
+        <p class="sub">LAVARD's payment path is validated on X Layer mainnet — a real USDT
+          settlement through the OKX agent-payment rail.</p></div>
+    </div>
+    <div class="tx">
+      <div class="l">✓ On-chain settlement · X Layer · completed</div>
+      <div class="r">
+        <a href="https://www.oklink.com/xlayer/tx/0xa65fd7203bb759aa82eb6dc904b2869e079fc00f8abbce74ec60f1d8a7f5e701" target="_blank" rel="noopener">0xa65fd7203bb759aa82eb6dc904b2869e079fc00f8abbce74ec60f1d8a7f5e701</a>
+        <span class="pill">verify on OKLink ↗</span>
+      </div>
+    </div>
+    <div class="facts">
+      <div class="fact"><span class="b">▍</span><span><b>Listed on OKX AI.</b> Registered ASP on X Layer — agent 5909, ERC-8004 identity.</span></div>
+      <div class="fact"><span class="b">▍</span><span><b>Tamper-evident.</b> Hash-chained, HMAC-sealed audit log; survives concurrent load.</span></div>
+      <div class="fact"><span class="b">▍</span><span><b>Private by design.</b> Your work never trains on — or is shared with — another user.</span></div>
+      <div class="fact"><span class="b">▍</span><span><b>Hardened.</b> 278 tests, five deep security audits across accounting, concurrency &amp; injection.</span></div>
+    </div>
+  </div></section>
+</main>
+
+<footer><div class="wrap ft">
+  <span><b>LAVARD</b> — the coordination layer for AI work on OKX</span>
+  <span>X Layer · agent 5909</span>
+</div></footer>
+
+<script>
+  (function(){
+    var root=document.documentElement, tog=document.getElementById('tog');
+    function cur(){return root.dataset.theme||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');}
+    function paint(){tog.textContent=cur()==='dark'?'Light':'Dark';}
+    tog.onclick=function(){root.dataset.theme=cur()==='dark'?'light':'dark';paint();};
+    matchMedia('(prefers-color-scheme:dark)').addEventListener('change',paint); paint();
+
+    var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var rows=[].slice.call(document.querySelectorAll('#rows .row')), res=document.getElementById('rres');
+    function play(){
+      if(reduce){rows.forEach(function(r){r.classList.add('on')}); res.classList.add('on'); return;}
+      rows.forEach(function(r,i){setTimeout(function(){r.classList.add('on')},360*i+280)});
+      setTimeout(function(){res.classList.add('on')},360*rows.length+420);
+    }
+    var seen=false, io=new IntersectionObserver(function(e){e.forEach(function(x){
+      if(x.isIntersecting&&!seen){seen=true;play();}})},{threshold:.3});
+    io.observe(document.getElementById('run'));
+  })();
+</script>
