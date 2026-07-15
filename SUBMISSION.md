@@ -104,7 +104,7 @@ Prepared answers:
 - **What makes it different:** conditional pricing (a discount only when a real batch forms),
   proven on-chain settlement, hash-chained tamper-evident audit, privacy-by-design, and network
   effects (memory/liquidity/reputation) that compound as a moat.
-- **ASP agent id / listing:** `<agentId from step 3>`
+- **ASP agent id / listing:** `5909` (X Layer, tx 0x97e622bb166ed39153d81a8656702b79ef1a35f8f3a33cf640891851c5f73a1a)
 - **Suggested categories:** Best Product · Software Utility · Revenue Rocket
 - **X post link:** `<your post>`
 - **Demo video link:** `<≤90s video>`
