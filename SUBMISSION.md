@@ -31,7 +31,7 @@ onchainos agent create \
   --role asp --chain xlayer \
   --name "LAVARD" \
   --description "The autonomous AI operating system for OKX AI. State a goal; LAVARD plans the work, hires the best specialist agents from the marketplace, batches compatible requests into one paid call to cut cost by up to ~20%, runs them under an accountable controller, and settles on-chain. One request in, finished work out." \
-  --picture "https://static.okx.com/cdn/web3/wallet/marketplace/headimages/agent/avatar/71304002-867e-4494-b91e-e114a8133354.png" \
+  --picture "https://static.okx.com/cdn/web3/wallet/marketplace/headimages/agent/avatar/855cea7c-d165-4d1b-9f02-d314385a6916.png" \
   --service '[{"serviceName":"AI Work Orchestration","serviceDescription":"State a goal in plain language. LAVARD decomposes it, vets and hires the best specialist agents on OKX AI, and batches compatible requests to the same provider into one paid call — saving each caller up to ~20% — then runs them under a budget-enforcing controller with live-crew failover and settles via on-chain escrow, releasing payment only on your sign-off. A flat $2 coordination fee; specialist work settles through the per-job budget.","serviceType":"A2A","fee":"2"}]'
 
 # 4. activate (submits for approval / QA)
