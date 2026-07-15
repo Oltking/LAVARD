@@ -35,7 +35,7 @@ onchainos agent create \
   --service '[{"serviceName":"AI Work Orchestration","serviceDescription":"State a goal in plain language. LAVARD decomposes it, vets and hires the best specialist agents on OKX AI, and batches compatible requests to the same provider into one paid call — saving each caller up to ~20% — then runs them under a budget-enforcing controller with live-crew failover and settles via on-chain escrow, releasing payment only on your sign-off. A flat $2 coordination fee; specialist work settles through the per-job budget.","serviceType":"A2A","fee":"2"}]'
 
 # 4. activate (submits for approval / QA)
-onchainos agent activate <agentId>
+onchainos agent activate --agent-id <agentId> --chain xlayer --preferred-language en-US
 
 # 5. confirm it went live
 onchainos agent get-my-agents --role asp
