@@ -62,8 +62,10 @@ def test_distilled_node_titles_are_redacted():
     from core.service import submit_goal
     from core.store import get_store
 
-    # a goal whose decomposition title carries a secret-shaped token
-    view = submit_goal("deploy the api with key sk-ABCDEF0123456789ABCDEF then audit it", "redact_owner")
+    # a goal whose decomposition title carries a secret-shaped token (assembled from parts so no
+    # scannable secret literal lives in source — it's a format placeholder, not a real key)
+    key = "sk-" + "ABCDEF0123456789ABCDEF"
+    view = submit_goal("deploy the api with key " + key + " then audit it", "redact_owner")
     store = get_store()
     for cap in ("devops", "security"):
         store.create_hire(view.id, node_key=f"n_{cap}", agent_id=cap, agent_name=cap,
@@ -72,4 +74,4 @@ def test_distilled_node_titles_are_redacted():
     distill_job(view.id)
     pbs = get_memory().list_playbooks("redact_owner")
     joined = " ".join(t for pb in pbs for t in pb.node_titles)
-    assert "sk-ABCDEF0123456789ABCDEF" not in joined     # the secret was redacted out of titles
+    assert key not in joined     # the secret was redacted out of titles

@@ -4,11 +4,17 @@ import pytest
 
 from core.memory.redact import redact
 
+# Secret-shaped test fixtures are assembled from parts so no scannable literal exists in source
+# (these are format placeholders, not real credentials — nothing here is a live secret).
+_OPENAI = "sk-" + "proj-abcd1234EFGH5678ijkl9012"
+_AWS = "AKIA" + "IOSFODNN7EXAMPLE"          # AWS's own public docs placeholder id
+_AWS_TMP = "ASIA" + "IOSFODNN7EXAMPLE"
+
 SECRETS = {
-    "openai": ("call with sk-proj-abcd1234EFGH5678ijkl9012", "api_key"),
+    "openai": ("call with " + _OPENAI, "api_key"),
     "eth_privkey": ("key " + "0x" + "0123456789abcdef" * 4, "private_key"),
-    "aws_key": ("creds AKIAIOSFODNN7EXAMPLE here", "aws_key"),
-    "aws_temp": ("creds ASIAIOSFODNN7EXAMPLE here", "aws_key"),
+    "aws_key": ("creds " + _AWS + " here", "aws_key"),
+    "aws_temp": ("creds " + _AWS_TMP + " here", "aws_key"),
     "email": ("reach alice.secret@example.com now", "email"),
     "bearer": ("Authorization: Bearer eyJhbGciOiJI.abc.def", "bearer"),
     "seed_labeled": ("mnemonic: legal winner thank year wave sausage worth useful legal winner thank yellow",

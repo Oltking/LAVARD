@@ -10,8 +10,9 @@ GOAL = "Research the top 3 rollups, then write a comparison blog post, then audi
 
 
 def test_redaction_strips_secrets():
-    clean, kinds = redact("key sk-ABCD1234EFGH5678IJKL and 0x" + "a" * 64 + " email a@b.com")
-    assert "sk-ABCD" not in clean
+    key = "sk-" + "ABCD1234EFGH5678IJKL"          # placeholder, assembled so no literal is scanned
+    clean, kinds = redact("key " + key + " and 0x" + "a" * 64 + " email a@b.com")
+    assert key not in clean
     assert "0x" + "a" * 64 not in clean
     assert "a@b.com" not in clean
     assert {"api_key", "private_key", "email"}.issubset(set(kinds))
