@@ -95,30 +95,20 @@ log "my-asps -> $(onchainos agent get-my-agents --role asp 2>&1 | head -c 220)"
 okx-a2a config provider --provider openclaw >/dev/null 2>&1 && log "provider=openclaw"
 okx-a2a agent bypass on >/dev/null 2>&1 && log "bypass on"
 
-# --- start the OpenClaw gateway (AI brain on :18789). Backgrounded; NEVER block the daemon. ---
-start_gateway() {
-  openclaw gateway run --force --auth none --allow-unconfigured >"$HOME/openclaw-gateway.log" 2>&1 &
-  log "openclaw gateway starting pid=$!"
-}
-start_gateway
+# clear any stale daemon lock/sockets before the plugin's listener starts
+rm -f "$HOME/.okx-agent-task/run/daemon.lock" "$HOME/.okx-agent-task/run/"*.sock 2>/dev/null
 
 # --- persist state back to the disk on exit (best-effort) ---
 trap 'log "persisting state..."; sync' EXIT
 
 # --- after the daemon comes up: load the listener + heartbeat, then keep beating ---
 (
-  sleep 25
+  sleep 40
   log "gateway health -> $(openclaw health 2>&1 | head -c 180)"
-  log "gateway log tail -> $(tail -n 4 "$HOME/openclaw-gateway.log" 2>/dev/null | tr '\n' ' ' | head -c 400)"
   okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
   onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'wallet=',(d.get('wallet') or {}).get('ok'),'identity=',(d.get('identity') or {}).get('ok'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
   while true; do
     sleep 60
-    # self-heal: restart the OpenClaw gateway if it died (AI brain must stay up)
-    if ! openclaw health >/dev/null 2>&1; then
-      log "openclaw gateway down -> restarting"
-      start_gateway
-    fi
     # self-heal: only re-auth when the session has actually expired
     if ! onchainos agent get-my-agents --role asp 2>/dev/null | grep -q '"ok":true'; then
       log "session gone -> re-authenticating"
@@ -131,9 +121,8 @@ trap 'log "persisting state..."; sync' EXIT
   done
 ) &
 
-# clear stale daemon lock/sockets left on the persistent disk by a prior container
-# (container PIDs reset across restarts, so an old lock is a false "already running")
-rm -f "$HOME/.okx-agent-task/run/daemon.lock" "$HOME/.okx-agent-task/run/"*.sock 2>/dev/null
-
-log "starting okx-a2a daemon (foreground)"
-exec okx-a2a run
+# --- MAIN PROCESS: the OpenClaw gateway. Its okx-a2a plugin (activation.onStartup)
+#     runs the XMTP listener for agent 5909; the gateway serves the Gemini brain.
+#     Do NOT also run `okx-a2a run` — that is a second daemon and collides. ---
+log "starting OpenClaw gateway (foreground) — a2a plugin runs the listener"
+exec openclaw gateway run --force --auth none --allow-unconfigured
