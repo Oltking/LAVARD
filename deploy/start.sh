@@ -43,9 +43,11 @@ log "openclaw skills linked: $(ls "$HOME/.agents/skills/onchainos-skills" 2>/dev
 # --- wallet session: AK login from env creds (authoritative; seeded session is
 #     device-bound and cannot self-renew on a different host, so we re-mint here) ---
 if [ -n "${OKX_API_KEY:-}" ] && [ -n "${OKX_SECRET_KEY:-}" ] && [ -n "${OKX_PASSPHRASE:-}" ]; then
-  # drop any stale/expired seeded session so login does a clean fresh AK auth
-  rm -f "$HOME/.onchainos/session.json" 2>/dev/null
-  # version-proof: plain login first (AK from env), fall back to --force if supported
+  # Force a REAL AK auth. Plain `login` no-ops (returns ok, writes no session) when
+  # it thinks it's already logged in — so clear BOTH the session and the account
+  # marker first. XMTP identity lives in .okx-agent-task/xmtp, untouched by this.
+  onchainos wallet logout >/dev/null 2>&1 || true
+  rm -f "$ONCHAINOS_HOME/session.json" "$ONCHAINOS_HOME/wallets.json" 2>/dev/null
   LOGIN_OUT="$(onchainos wallet login 2>&1)"
   echo "$LOGIN_OUT" | grep -q '"ok":true' || LOGIN_OUT="$(onchainos wallet login --force 2>&1)"
   if echo "$LOGIN_OUT" | grep -q '"ok":true'; then
@@ -76,11 +78,16 @@ trap 'log "persisting state..."; sync' EXIT
   okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
   onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'wallet=',(d.get('wallet') or {}).get('ok'),'identity=',(d.get('identity') or {}).get('ok'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
   while true; do
-    # keep the session fresh (AK sessions are short-lived) and re-bind the listener
-    onchainos wallet login >/dev/null 2>&1
-    okx-a2a agent refresh >/dev/null 2>&1
-    onchainos agent heartbeat --chain-index "$CHAIN_INDEX" >/dev/null 2>&1
     sleep 60
+    # self-heal: only re-auth when the session has actually expired
+    if ! onchainos agent get-my-agents --role asp 2>/dev/null | grep -q '"ok":true'; then
+      log "session gone -> re-authenticating"
+      onchainos wallet logout >/dev/null 2>&1 || true
+      rm -f "$ONCHAINOS_HOME/session.json" "$ONCHAINOS_HOME/wallets.json" 2>/dev/null
+      onchainos wallet login >/dev/null 2>&1
+      okx-a2a agent refresh >/dev/null 2>&1
+    fi
+    onchainos agent heartbeat --chain-index "$CHAIN_INDEX" >/dev/null 2>&1
   done
 ) &
 
