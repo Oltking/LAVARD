@@ -29,8 +29,15 @@ if [ -z "${GEMINI_API_KEY:-}" ]; then log "FATAL: GEMINI_API_KEY not set"; fi
 envsubst < /app/deploy/openclaw.json.tmpl > "$HOME/.openclaw/openclaw.json"
 log "openclaw configured for gemini/$GEMINI_MODEL"
 
-# --- wallet session: refresh AK login (uses seeded session; env creds as fallback) ---
-onchainos wallet login --force >/dev/null 2>&1 && log "wallet login ok" || log "wallet login returned non-zero (may already be valid)"
+# --- wallet session: AK login from env creds (authoritative; seeded session is
+#     device-bound and cannot self-renew on a different host, so we re-mint here) ---
+if [ -n "${OKX_API_KEY:-}" ] && [ -n "${OKX_SECRET_KEY:-}" ] && [ -n "${OKX_PASSPHRASE:-}" ]; then
+  # drop any stale/expired seeded session so login does a clean fresh AK auth
+  rm -f "$HOME/.onchainos/session.json" 2>/dev/null
+  onchainos wallet login --force >/dev/null 2>&1 && log "AK login ok (from env creds)" || log "AK login FAILED — check OKX_* creds"
+else
+  log "FATAL: OKX_API_KEY / OKX_SECRET_KEY / OKX_PASSPHRASE not set — cannot authenticate"
+fi
 onchainos wallet status 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin)['data'];print('[start] login=',d.get('loginType'),'account=',d.get('currentAccountName'))" 2>/dev/null || true
 
 # --- bind provider + auto-respond ---
