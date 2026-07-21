@@ -62,7 +62,10 @@ else
   log "FATAL: OKX_API_KEY / OKX_SECRET_KEY / OKX_PASSPHRASE not set — cannot authenticate"
 fi
 onchainos wallet status 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin)['data'];print('[start] login=',d.get('loginType'),'account=',d.get('currentAccountName'))" 2>/dev/null || true
+log "onchainos version -> $(onchainos --version 2>&1)"
+log "login raw -> $(printf '%s' "$LOGIN_OUT" | head -c 240)"
 log "ONCHAINOS_HOME=$ONCHAINOS_HOME  session.json? $([ -f "$ONCHAINOS_HOME/session.json" ] && echo yes || echo NO)"
+log "home files -> $(ls "$ONCHAINOS_HOME" 2>&1 | tr '\n' ' ')"
 log "my-asps -> $(onchainos agent get-my-agents --role asp 2>&1 | head -c 220)"
 
 # --- bind provider + auto-respond ---
