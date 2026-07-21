@@ -5,6 +5,7 @@
 set -uo pipefail
 
 export HOME=/data
+export ONCHAINOS_HOME=/data/.onchainos   # pin so daemon children read the same session
 export PATH="/root/.local/bin:${PATH}"
 CHAIN_INDEX=196
 AGENT=5909
@@ -59,6 +60,8 @@ else
   log "FATAL: OKX_API_KEY / OKX_SECRET_KEY / OKX_PASSPHRASE not set — cannot authenticate"
 fi
 onchainos wallet status 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin)['data'];print('[start] login=',d.get('loginType'),'account=',d.get('currentAccountName'))" 2>/dev/null || true
+log "ONCHAINOS_HOME=$ONCHAINOS_HOME  session.json? $([ -f "$ONCHAINOS_HOME/session.json" ] && echo yes || echo NO)"
+log "my-asps -> $(onchainos agent get-my-agents --role asp 2>&1 | head -c 220)"
 
 # --- bind provider + auto-respond ---
 okx-a2a config provider --provider openclaw >/dev/null 2>&1 && log "provider=openclaw"
@@ -73,8 +76,11 @@ trap 'log "persisting state..."; sync' EXIT
   okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
   onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'wallet=',(d.get('wallet') or {}).get('ok'),'identity=',(d.get('identity') or {}).get('ok'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
   while true; do
+    # keep the session fresh (AK sessions are short-lived) and re-bind the listener
+    onchainos wallet login >/dev/null 2>&1
+    okx-a2a agent refresh >/dev/null 2>&1
     onchainos agent heartbeat --chain-index "$CHAIN_INDEX" >/dev/null 2>&1
-    sleep 90
+    sleep 60
   done
 ) &
 
