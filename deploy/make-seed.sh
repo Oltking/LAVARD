@@ -8,9 +8,16 @@ OUT=/tmp/lavard-seed.b64
 TAR=/tmp/lavard-seed.tar.gz
 
 cd "$HOME"
-# minimal, sufficient state: wallet creds/session + XMTP identity + a2a config
+# minimal, sufficient state: wallet creds/session + XMTP identity + a2a config.
+# Exclude bulky, non-essential logs/caches (audit.jsonl, workflows, *-wal/-shm).
 tar czf "$TAR" \
-  .onchainos \
+  --exclude='.onchainos/audit.jsonl' \
+  --exclude='.onchainos/workflows' \
+  --exclude='.onchainos/bin' \
+  --exclude='*-wal' --exclude='*-shm' \
+  .onchainos/session.json \
+  .onchainos/wallets.json \
+  .onchainos/chain_cache.json \
   .okx-agent-task/xmtp \
   .okx-agent-task/config.toml \
   2>/dev/null
