@@ -44,7 +44,15 @@ log "openclaw skills linked: $(ls "$HOME/.agents/skills/onchainos-skills" 2>/dev
 if [ -n "${OKX_API_KEY:-}" ] && [ -n "${OKX_SECRET_KEY:-}" ] && [ -n "${OKX_PASSPHRASE:-}" ]; then
   # drop any stale/expired seeded session so login does a clean fresh AK auth
   rm -f "$HOME/.onchainos/session.json" 2>/dev/null
-  onchainos wallet login --force >/dev/null 2>&1 && log "AK login ok (from env creds)" || log "AK login FAILED — check OKX_* creds"
+  LOGIN_OUT="$(onchainos wallet login --force 2>&1)"
+  if echo "$LOGIN_OUT" | grep -q '"ok":true'; then
+    log "AK login ok (from env creds)"
+  else
+    log "AK login FAILED -> $LOGIN_OUT"
+    # surface geo/region status too (OKX blocks some datacenter regions)
+    log "geoblock check -> $(onchainos wallet geoblock 2>&1 | head -c 200)"
+    log "egress IP -> $(curl -s --max-time 8 https://api.ipify.org 2>/dev/null) ; country -> $(curl -s --max-time 8 https://ipapi.co/country 2>/dev/null)"
+  fi
 else
   log "FATAL: OKX_API_KEY / OKX_SECRET_KEY / OKX_PASSPHRASE not set — cannot authenticate"
 fi
