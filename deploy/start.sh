@@ -72,16 +72,18 @@ log "my-asps -> $(onchainos agent get-my-agents --role asp 2>&1 | head -c 220)"
 okx-a2a config provider --provider openclaw >/dev/null 2>&1 && log "provider=openclaw"
 okx-a2a agent bypass on >/dev/null 2>&1 && log "bypass on"
 
-# --- start the OpenClaw gateway (the AI brain okx-a2a talks to on :18789) ---
+# --- ensure the OpenClaw a2a plugin exists at runtime (build HOME=/root != runtime /data) ---
+if ! openclaw plugins list 2>/dev/null | grep -qi "a2a"; then
+  log "installing openclaw a2a plugin (runtime)..."
+  openclaw plugins install @okxweb3/a2a-openclaw@latest --force --dangerously-force-unsafe-install >/dev/null 2>&1 || true
+fi
+
+# --- start the OpenClaw gateway (AI brain on :18789). Backgrounded; NEVER block the daemon. ---
 start_gateway() {
-  openclaw gateway run --force >"$HOME/openclaw-gateway.log" 2>&1 &
+  openclaw gateway run --force --auth none --allow-unconfigured >"$HOME/openclaw-gateway.log" 2>&1 &
   log "openclaw gateway starting pid=$!"
 }
 start_gateway
-# wait up to ~30s for the gateway to bind, then report
-for i in $(seq 1 15); do openclaw health >/dev/null 2>&1 && break; sleep 2; done
-log "openclaw gateway health -> $(openclaw health 2>&1 | head -c 160)"
-log "gateway log tail -> $(tail -n 3 "$HOME/openclaw-gateway.log" 2>/dev/null | tr '\n' ' ' | head -c 320)"
 
 # --- persist state back to the disk on exit (best-effort) ---
 trap 'log "persisting state..."; sync' EXIT
@@ -89,6 +91,8 @@ trap 'log "persisting state..."; sync' EXIT
 # --- after the daemon comes up: load the listener + heartbeat, then keep beating ---
 (
   sleep 25
+  log "gateway health -> $(openclaw health 2>&1 | head -c 180)"
+  log "gateway log tail -> $(tail -n 4 "$HOME/openclaw-gateway.log" 2>/dev/null | tr '\n' ' ' | head -c 400)"
   okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
   onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'wallet=',(d.get('wallet') or {}).get('ok'),'identity=',(d.get('identity') or {}).get('ok'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
   while true; do
