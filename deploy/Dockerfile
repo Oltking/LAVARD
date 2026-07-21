@@ -4,7 +4,7 @@ FROM node:24-bookworm-slim
 
 # system deps: curl (installer), ca-certs, python3 (LAVARD core is stdlib), gettext (envsubst), tar
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      curl ca-certificates python3 gettext-base tar procps \
+      curl ca-certificates git python3 gettext-base tar procps \
     && rm -rf /var/lib/apt/lists/*
 
 # --- onchainos CLI (auto-detects linux, installs to ~/.local/bin) ---
