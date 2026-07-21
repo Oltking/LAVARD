@@ -6,6 +6,10 @@ set -uo pipefail
 
 export HOME=/data
 export ONCHAINOS_HOME=/data/.onchainos   # pin so daemon children read the same session
+# OpenClaw uses the image-baked plugin at /root/.openclaw (built with HOME=/root).
+# Point it there so we don't re-install the plugin at runtime (which hangs).
+export OPENCLAW_STATE_DIR=/root/.openclaw
+export OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json
 export PATH="/root/.local/bin:${PATH}"
 CHAIN_INDEX=196
 AGENT=5909
@@ -24,11 +28,30 @@ if [ ! -f "$HOME/.seeded" ]; then
   fi
 fi
 
-# --- OpenClaw -> Gemini config (from env) ---
+# --- OpenClaw -> Gemini config: MERGE into the plugin-registered config (don't clobber) ---
 : "${GEMINI_MODEL:=gemini-3.1-flash-lite}"
 if [ -z "${GEMINI_API_KEY:-}" ]; then log "FATAL: GEMINI_API_KEY not set"; fi
-envsubst < /app/deploy/openclaw.json.tmpl > "$HOME/.openclaw/openclaw.json"
-log "openclaw configured for gemini/$GEMINI_MODEL"
+python3 - <<'PY'
+import json, os
+p = os.environ["OPENCLAW_CONFIG_PATH"]
+try:
+    cfg = json.load(open(p))          # keep plugins.entries.okx-a2a from build
+except Exception:
+    cfg = {}
+model = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
+cfg.setdefault("agents", {}).setdefault("defaults", {})["model"] = {"primary": f"gemini/{model}"}
+m = cfg.setdefault("models", {}); m["mode"] = "merge"
+m.setdefault("providers", {})["gemini"] = {
+    "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai/",
+    "apiKey": os.environ["GEMINI_API_KEY"],
+    "api": "openai-completions",
+    "models": [{"id": model, "name": "Gemini"}],
+}
+os.makedirs(os.path.dirname(p), exist_ok=True)
+json.dump(cfg, open(p, "w"), indent=2)
+print("merged gemini into", p)
+PY
+log "openclaw configured for gemini/$GEMINI_MODEL (plugins preserved)"
 
 # --- OpenClaw skill discovery: it reads the okx-ai protocol from a symlink.
 #     Without this the brain won't know how to answer a task envelope. ---
@@ -71,12 +94,6 @@ log "my-asps -> $(onchainos agent get-my-agents --role asp 2>&1 | head -c 220)"
 # --- bind provider + auto-respond ---
 okx-a2a config provider --provider openclaw >/dev/null 2>&1 && log "provider=openclaw"
 okx-a2a agent bypass on >/dev/null 2>&1 && log "bypass on"
-
-# --- ensure the OpenClaw a2a plugin exists at runtime (build HOME=/root != runtime /data) ---
-if ! openclaw plugins list 2>/dev/null | grep -qi "a2a"; then
-  log "installing openclaw a2a plugin (runtime)..."
-  openclaw plugins install @okxweb3/a2a-openclaw@latest --force --dangerously-force-unsafe-install >/dev/null 2>&1 || true
-fi
 
 # --- start the OpenClaw gateway (AI brain on :18789). Backgrounded; NEVER block the daemon. ---
 start_gateway() {
