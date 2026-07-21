@@ -1,0 +1,28 @@
+# Render blueprint for the LAVARD ASP provider (agent 5909).
+# An always-on background worker + persistent disk so the laptop is no longer needed.
+services:
+  - type: worker
+    name: lavard-agent-5909
+    runtime: docker
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    plan: starter            # always-on (~$7/mo). Free tier spins down = agent goes offline.
+    autoDeploy: true
+    disk:
+      name: lavard-identity  # holds wallet session + XMTP identity across deploys
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: GEMINI_API_KEY  # free Google AI Studio key (aistudio.google.com/apikey)
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite
+      # Fallback AK creds (used only if the seeded session cannot self-refresh):
+      - key: OKX_API_KEY
+        sync: false
+      - key: OKX_SECRET_KEY
+        sync: false
+      - key: OKX_PASSPHRASE
+        sync: false
+# NOTE: the identity seed is uploaded separately as a Render "Secret File" named
+# IDENTITY_SEED (see deploy/README.md). It is NOT committed to git.

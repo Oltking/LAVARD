@@ -1,0 +1,20 @@
+{
+  "agents": {
+    "defaults": {
+      "model": { "primary": "gemini/${GEMINI_MODEL}" }
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "gemini": {
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "apiKey": "${GEMINI_API_KEY}",
+        "api": "openai-completions",
+        "models": [
+          { "id": "${GEMINI_MODEL}", "name": "Gemini Flash Lite" }
+        ]
+      }
+    }
+  }
+}
