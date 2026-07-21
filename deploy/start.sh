@@ -131,5 +131,9 @@ trap 'log "persisting state..."; sync' EXIT
   done
 ) &
 
+# clear stale daemon lock/sockets left on the persistent disk by a prior container
+# (container PIDs reset across restarts, so an old lock is a false "already running")
+rm -f "$HOME/.okx-agent-task/run/daemon.lock" "$HOME/.okx-agent-task/run/"*.sock 2>/dev/null
+
 log "starting okx-a2a daemon (foreground)"
 exec okx-a2a run
