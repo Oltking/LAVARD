@@ -44,7 +44,9 @@ log "openclaw skills linked: $(ls "$HOME/.agents/skills/onchainos-skills" 2>/dev
 if [ -n "${OKX_API_KEY:-}" ] && [ -n "${OKX_SECRET_KEY:-}" ] && [ -n "${OKX_PASSPHRASE:-}" ]; then
   # drop any stale/expired seeded session so login does a clean fresh AK auth
   rm -f "$HOME/.onchainos/session.json" 2>/dev/null
-  LOGIN_OUT="$(onchainos wallet login --force 2>&1)"
+  # version-proof: plain login first (AK from env), fall back to --force if supported
+  LOGIN_OUT="$(onchainos wallet login 2>&1)"
+  echo "$LOGIN_OUT" | grep -q '"ok":true' || LOGIN_OUT="$(onchainos wallet login --force 2>&1)"
   if echo "$LOGIN_OUT" | grep -q '"ok":true'; then
     log "AK login ok (from env creds)"
   else

@@ -6,6 +6,7 @@ services:
     runtime: docker
     dockerfilePath: ./deploy/Dockerfile
     dockerContext: .
+    region: frankfurt        # MUST be non-US — OKX geo-blocks US datacenter IPs.
     plan: starter            # always-on (~$7/mo). Free tier spins down = agent goes offline.
     autoDeploy: true
     disk:
