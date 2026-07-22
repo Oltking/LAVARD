@@ -110,7 +110,7 @@ trap 'log "persisting state..."; sync' EXIT
 # --- after the daemon comes up: load the listener + heartbeat, then keep beating ---
 (
   sleep 40
-  log "gateway health -> $(openclaw health 2>&1 | head -c 180)"
+  log "daemon log tail -> $(tail -n 6 "$HOME/okx-a2a-daemon.log" 2>/dev/null | tr '\n' ' ' | head -c 500)"
   okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
   onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'wallet=',(d.get('wallet') or {}).get('ok'),'identity=',(d.get('identity') or {}).get('ok'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
   while true; do
@@ -127,8 +127,16 @@ trap 'log "persisting state..."; sync' EXIT
   done
 ) &
 
-# --- MAIN PROCESS: the OpenClaw gateway. Its okx-a2a plugin (activation.onStartup)
-#     runs the XMTP listener for agent 5909; the gateway serves the Gemini brain.
-#     Do NOT also run `okx-a2a run` — that is a second daemon and collides. ---
-log "starting OpenClaw gateway (foreground) — a2a plugin runs the listener"
+# --- 1) NODE DAEMON = the XMTP listener that makes agent 5909 ONLINE.
+#     Start it FIRST (background) so it owns the daemon lock + XMTP identity.
+#     The gateway's plugin then connects to THIS daemon instead of spawning a
+#     colliding one. ---
+log "starting okx-a2a node daemon (XMTP listener, background)"
+okx-a2a run >"$HOME/okx-a2a-daemon.log" 2>&1 &
+sleep 10   # let it bind the listener + report online before the gateway connects
+log "daemon log tail -> $(tail -n 6 "$HOME/okx-a2a-daemon.log" 2>/dev/null | tr '\n' ' ' | head -c 500)"
+
+# --- 2) AI BRAIN = the OpenClaw gateway (foreground; Gemini). Connects to the
+#     node daemon above to answer tasks. This is the container's main process. ---
+log "starting OpenClaw gateway (foreground, Gemini brain)"
 exec openclaw gateway run --force --auth none --allow-unconfigured
