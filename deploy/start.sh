@@ -110,13 +110,9 @@ trap 'log "persisting state..."; sync' EXIT
 # --- after the daemon comes up: load the listener + heartbeat, then keep beating ---
 (
   sleep 45
-  # one-time resubmit FIRST (daemon is live in this container). timeout-guarded so it can't hang.
-  if [ ! -f "$HOME/.resubmitted-v1" ]; then
-    log "resubmitting listing for review..."
-    RS="$(timeout 100 onchainos agent activate --agent-id "$AGENT" --chain xlayer --preferred-language en-US 2>&1)"
-    log "resubmit -> $(printf '%s' "$RS" | tail -c 340)"
-    printf '%s' "$RS" | grep -q '"success":true' && { touch "$HOME/.resubmitted-v1"; log "resubmit: SUBMITTED for review ✅"; } || log "resubmit: not confirmed (will retry next boot)"
-  fi
+  # NOTE: no auto-resubmit here. `onchainos agent activate` needs `okx-a2a agent
+  # refresh` to succeed, and that command hangs in this embedded-gateway setup.
+  # Resubmit is done manually from a machine where refresh works (the Mac), when needed.
   # diagnostics — timeout-guarded so a slow daemon can't stall the monitor
   timeout 30 okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
   timeout 30 onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
