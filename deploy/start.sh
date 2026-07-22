@@ -109,27 +109,26 @@ trap 'log "persisting state..."; sync' EXIT
 
 # --- after the daemon comes up: load the listener + heartbeat, then keep beating ---
 (
-  sleep 40
-  log "daemon log tail -> $(tail -n 6 "$HOME/okx-a2a-daemon.log" 2>/dev/null | tr '\n' ' ' | head -c 500)"
-  okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
-  onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'wallet=',(d.get('wallet') or {}).get('ok'),'identity=',(d.get('identity') or {}).get('ok'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
-  # one-time: resubmit the listing for review from HERE (where the daemon is live)
+  sleep 45
+  # one-time resubmit FIRST (daemon is live in this container). timeout-guarded so it can't hang.
   if [ ! -f "$HOME/.resubmitted-v1" ]; then
-    RS="$(onchainos agent activate --agent-id "$AGENT" --chain xlayer --preferred-language en-US 2>&1)"
-    log "resubmit -> $(printf '%s' "$RS" | tail -c 320)"
-    printf '%s' "$RS" | grep -q '"success":true' && { touch "$HOME/.resubmitted-v1"; log "resubmit: SUBMITTED for review ✅"; }
+    log "resubmitting listing for review..."
+    RS="$(timeout 100 onchainos agent activate --agent-id "$AGENT" --chain xlayer --preferred-language en-US 2>&1)"
+    log "resubmit -> $(printf '%s' "$RS" | tail -c 340)"
+    printf '%s' "$RS" | grep -q '"success":true' && { touch "$HOME/.resubmitted-v1"; log "resubmit: SUBMITTED for review ✅"; } || log "resubmit: not confirmed (will retry next boot)"
   fi
+  # diagnostics — timeout-guarded so a slow daemon can't stall the monitor
+  timeout 30 okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
+  timeout 30 onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
   while true; do
     sleep 60
-    # self-heal: only re-auth when the session has actually expired
-    if ! onchainos agent get-my-agents --role asp 2>/dev/null | grep -q '"ok":true'; then
+    if ! timeout 30 onchainos agent get-my-agents --role asp 2>/dev/null | grep -q '"ok":true'; then
       log "session gone -> re-authenticating"
-      onchainos wallet logout >/dev/null 2>&1 || true
+      timeout 30 onchainos wallet logout >/dev/null 2>&1 || true
       rm -f "$ONCHAINOS_HOME/session.json" "$ONCHAINOS_HOME/wallets.json" 2>/dev/null
-      onchainos wallet login >/dev/null 2>&1
-      okx-a2a agent refresh >/dev/null 2>&1
+      timeout 40 onchainos wallet login >/dev/null 2>&1
     fi
-    onchainos agent heartbeat --chain-index "$CHAIN_INDEX" >/dev/null 2>&1
+    timeout 30 onchainos agent heartbeat --chain-index "$CHAIN_INDEX" >/dev/null 2>&1
   done
 ) &
 
