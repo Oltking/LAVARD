@@ -1,5 +1,7 @@
 # LAVARD ASP provider — always-on agent 5909 for OKX AI.
-# Runs the okx-a2a XMTP daemon with OpenClaw -> Gemini (free) as the AI brain.
+# Runs the okx-a2a XMTP daemon STANDALONE (per-call codex provider, no gateway)
+# with Codex pointed at free Gemini as the AI brain. Standalone => `refresh`
+# works => the agent actually responds to calls (OpenClaw's embedded gateway did not).
 FROM node:24-bookworm-slim
 
 # system deps: curl (installer), ca-certs, python3 (LAVARD core is stdlib), gettext (envsubst), tar
@@ -23,9 +25,8 @@ RUN arch="$(uname -m)"; \
     /root/.local/bin/onchainos --version
 ENV PATH="/root/.local/bin:${PATH}"
 
-# --- okx-a2a daemon + OpenClaw runtime + OKX OpenClaw plugin ---
-RUN npm install -g @okxweb3/a2a-node@latest openclaw@latest \
-    && openclaw plugins install @okxweb3/a2a-openclaw@latest --force --dangerously-force-unsafe-install || true
+# --- okx-a2a daemon + Codex CLI (per-call provider, no gateway) ---
+RUN npm install -g @okxweb3/a2a-node@latest @openai/codex@latest
 
 # --- LAVARD app (the AI runs in this cwd) ---
 WORKDIR /app
