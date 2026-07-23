@@ -67,11 +67,8 @@ okx-a2a config provider --provider codex >/dev/null 2>&1 && log "provider=codex"
 okx-a2a config permissions --preset bypass >/dev/null 2>&1 || true
 okx-a2a agent bypass on >/dev/null 2>&1 && log "bypass on"
 
-# The config/bypass commands above auto-spawn a background daemon; stop it and clear
-# the lock so our foreground `okx-a2a run` becomes the single tracked listener.
-okx-a2a stop >/dev/null 2>&1 || true
-sleep 2
-rm -f "$HOME/.okx-agent-task/run/daemon.lock" "$HOME/.okx-agent-task/run/"*.sock 2>/dev/null
+# config/bypass already started the standalone daemon in the background; make sure it's up.
+okx-a2a start >/dev/null 2>&1 || true
 
 # --- background: confirm listener + heartbeat + self-heal ---
 (
@@ -91,6 +88,12 @@ rm -f "$HOME/.okx-agent-task/run/daemon.lock" "$HOME/.okx-agent-task/run/"*.sock
   done
 ) &
 
-# --- MAIN PROCESS: the standalone okx-a2a daemon (XMTP listener). No gateway. ---
-log "starting okx-a2a daemon (standalone, foreground)"
-exec okx-a2a run
+# --- MAIN PROCESS: keepalive around the already-running standalone daemon.
+#     (Do NOT `okx-a2a run` a second one — it collides and crash-loops.) ---
+sleep 8
+log "daemon status -> $(okx-a2a status 2>&1 | tr '\n' ' ' | head -c 220)"
+log "entering keepalive (standalone daemon is the background listener)"
+while true; do
+  sleep 30
+  okx-a2a status 2>&1 | grep -qiE "running|ready|pid=" || { log "daemon down -> restart"; okx-a2a start >/dev/null 2>&1 || true; }
+done
