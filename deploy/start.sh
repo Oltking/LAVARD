@@ -67,7 +67,10 @@ okx-a2a config provider --provider codex >/dev/null 2>&1 && log "provider=codex"
 okx-a2a config permissions --preset bypass >/dev/null 2>&1 || true
 okx-a2a agent bypass on >/dev/null 2>&1 && log "bypass on"
 
-# clear stale daemon lock/sockets from a prior container
+# The config/bypass commands above auto-spawn a background daemon; stop it and clear
+# the lock so our foreground `okx-a2a run` becomes the single tracked listener.
+okx-a2a stop >/dev/null 2>&1 || true
+sleep 2
 rm -f "$HOME/.okx-agent-task/run/daemon.lock" "$HOME/.okx-agent-task/run/"*.sock 2>/dev/null
 
 # --- background: confirm listener + heartbeat + self-heal ---
