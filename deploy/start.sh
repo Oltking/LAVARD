@@ -97,47 +97,86 @@ log "ONCHAINOS_HOME=$ONCHAINOS_HOME  session.json? $([ -f "$ONCHAINOS_HOME/sessi
 log "home files -> $(ls "$ONCHAINOS_HOME" 2>&1 | tr '\n' ' ')"
 log "my-asps -> $(onchainos agent get-my-agents --role asp 2>&1 | head -c 220)"
 
-# --- bind provider + auto-respond ---
+# --- bind provider ---
 okx-a2a config provider --provider openclaw >/dev/null 2>&1 && log "provider=openclaw"
 okx-a2a agent bypass on >/dev/null 2>&1 && log "bypass on"
 
-# clear any stale daemon lock/sockets before the plugin's listener starts
-rm -f "$HOME/.okx-agent-task/run/daemon.lock" "$HOME/.okx-agent-task/run/"*.sock 2>/dev/null
+# --- HARD RESET of daemon RUNTIME state (never the identity) ---------------
+# The persistent disk keeps stale locks/sockets + any straggler daemon across
+# restarts, which makes the real XMTP listener refuse to start ("another daemon
+# is already running"). Kill any straggler and wipe ONLY run/ + logs/. Identity
+# (xmtp/, .onchainos session, keyring) is left completely untouched.
+log "hard-reset: killing straggler daemons + clearing runtime locks"
+pkill -f 'okx-a2a run' 2>/dev/null || true
+pkill -f 'a2a-node'    2>/dev/null || true
+sleep 2
+rm -rf "$HOME/.okx-agent-task/run" "$HOME/.okx-agent-task/logs" 2>/dev/null
+mkdir -p "$HOME/.okx-agent-task/run" "$HOME/.okx-agent-task/logs"
 
-# --- persist state back to the disk on exit (best-effort) ---
 trap 'log "persisting state..."; sync' EXIT
 
-# --- after the daemon comes up: load the listener + heartbeat, then keep beating ---
+# --- 1) THE single XMTP listener daemon (background) -----------------------
+log "starting okx-a2a node daemon (single XMTP listener)"
+okx-a2a run >"$HOME/okx-a2a-daemon.log" 2>&1 &
+DAEMON_PID=$!
+sleep 10
+log "daemon log tail -> $(tail -n 6 "$HOME/okx-a2a-daemon.log" 2>/dev/null | tr '\n' ' ' | head -c 400)"
+
+# If the listener died on startup there is nothing to answer calls — exit
+# non-zero so Render restarts the container CLEAN instead of sitting half-alive.
+if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
+  log "FATAL: XMTP listener exited on startup -> forcing clean container restart"
+  tail -n 20 "$HOME/okx-a2a-daemon.log" 2>/dev/null
+  exit 1
+fi
+
+# --- 2) GATE on canonical readiness before going live ----------------------
+# Do NOT start the brain until communication is ACTUALLY up. Run the vendor's
+# canonical repair (doctor --fix) on a loop until ready:true. If it never gets
+# there, exit non-zero -> Render restarts clean rather than lying about "live".
+READY=0
+for i in $(seq 1 12); do
+  OUT="$(timeout 45 okx-a2a doctor --fix --json 2>/dev/null)"
+  if printf '%s' "$OUT" | python3 -c "import sys,json
+d=json.load(sys.stdin)
+r=d.get('ready') or (d.get('data') or {}).get('ready') or (d.get('payload') or {}).get('ready')
+sys.exit(0 if r else 1)" 2>/dev/null; then
+    READY=1; log "A2A communication ready after doctor --fix (attempt $i/12)"; break
+  fi
+  log "not ready yet (attempt $i/12) -> $(printf '%s' "$OUT" | tr '\n' ' ' | head -c 160)"
+  sleep 10
+done
+if [ "$READY" != "1" ]; then
+  log "FATAL: A2A never reached ready:true after doctor --fix -> forcing clean restart"
+  onchainos agent gate-check --role asp 2>/dev/null | head -c 500
+  exit 1
+fi
+
+# --- self-heal loop: keep the listener alive + session fresh + heartbeat ----
 (
-  sleep 45
-  # NOTE: no auto-resubmit here. `onchainos agent activate` needs `okx-a2a agent
-  # refresh` to succeed, and that command hangs in this embedded-gateway setup.
-  # Resubmit is done manually from a machine where refresh works (the Mac), when needed.
-  # diagnostics — timeout-guarded so a slow daemon can't stall the monitor
   timeout 30 okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
-  timeout 30 onchainos agent gate-check --role asp 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin).get('data',{});print('[start] gate-check ready=',d.get('ready'),'comm=',(d.get('communication') or {}).get('ok'))" 2>/dev/null || true
   while true; do
     sleep 60
+    # (a) listener liveness — restart it in place (clean locks first) if it died
+    if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
+      log "listener down -> restarting it"
+      pkill -f 'a2a-node' 2>/dev/null || true; sleep 2
+      rm -rf "$HOME/.okx-agent-task/run"; mkdir -p "$HOME/.okx-agent-task/run"
+      okx-a2a run >"$HOME/okx-a2a-daemon.log" 2>&1 &
+      DAEMON_PID=$!
+    fi
+    # (b) session liveness — re-auth from env creds if the wallet session lapsed
     if ! timeout 30 onchainos agent get-my-agents --role asp 2>/dev/null | grep -q '"ok":true'; then
       log "session gone -> re-authenticating"
       timeout 30 onchainos wallet logout >/dev/null 2>&1 || true
       rm -f "$ONCHAINOS_HOME/session.json" "$ONCHAINOS_HOME/wallets.json" 2>/dev/null
       timeout 40 onchainos wallet login >/dev/null 2>&1
     fi
-    timeout 30 onchainos agent heartbeat --chain-index "$CHAIN_INDEX" >/dev/null 2>&1
+    timeout 30 onchainos agent heartbeat --chain-index "$CHAIN_INDEX" >/dev/null 2>&1 || true
   done
 ) &
 
-# --- 1) NODE DAEMON = the XMTP listener that makes agent 5909 ONLINE.
-#     Start it FIRST (background) so it owns the daemon lock + XMTP identity.
-#     The gateway's plugin then connects to THIS daemon instead of spawning a
-#     colliding one. ---
-log "starting okx-a2a node daemon (XMTP listener, background)"
-okx-a2a run >"$HOME/okx-a2a-daemon.log" 2>&1 &
-sleep 10   # let it bind the listener + report online before the gateway connects
-log "daemon log tail -> $(tail -n 6 "$HOME/okx-a2a-daemon.log" 2>/dev/null | tr '\n' ' ' | head -c 500)"
-
-# --- 2) AI BRAIN = the OpenClaw gateway (foreground; Gemini). Connects to the
-#     node daemon above to answer tasks. This is the container's main process. ---
-log "starting OpenClaw gateway (foreground, Gemini brain)"
+# --- 3) AI BRAIN = the OpenClaw gateway (foreground; Gemini). Connects to the
+#     single listener above. This is the container's main process. ---
+log "A2A ready — starting OpenClaw gateway (foreground, Gemini brain)"
 exec openclaw gateway run --force --auth none --allow-unconfigured
