@@ -88,6 +88,22 @@ okx-a2a start >/dev/null 2>&1 || true
   done
 ) &
 
+# --- ASP LISTENING LOOP (per OKX guidance): Codex has no native task push, so
+#     poll every 45s and hand any pending/available task to the brain to pick up. ---
+(
+  sleep 50
+  while true; do
+    timeout 180 okx-a2a ai exec --provider codex --cwd /app --prompt \
+"You are ASP agent 5909 (id 5909) on OKX AI, chain xlayer. Read the okx-ai skill. \
+Check for work: run 'onchainos agent recommend-task --agent-id 5909' for public tasks \
+and process any pending designated-task system events. For any task you can serve, \
+follow the task-asp flow to contact the user and apply. If there is no task, output 'no tasks' and stop. \
+Do not fund escrow. Be concise." >>"$HOME/asp-listen.log" 2>&1
+    log "asp-listen tick -> $(tail -n 1 "$HOME/asp-listen.log" 2>/dev/null | head -c 120)"
+    sleep 45
+  done
+) &
+
 # --- MAIN PROCESS: keepalive around the already-running standalone daemon.
 #     (Do NOT `okx-a2a run` a second one — it collides and crash-loops.) ---
 sleep 8
