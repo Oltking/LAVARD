@@ -115,49 +115,70 @@ mkdir -p "$HOME/.okx-agent-task/run" "$HOME/.okx-agent-task/logs"
 
 trap 'log "persisting state..."; sync' EXIT
 
-# --- 1) THE single XMTP listener daemon (background) -----------------------
+# Helpers -------------------------------------------------------------------
+port_up(){ timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/18789' 2>/dev/null; }
+start_gateway(){
+  # The AI brain. MUST be up BEFORE the daemon so the daemon's job dispatches
+  # land on an established ws (ws://127.0.0.1:18789) instead of a closed socket.
+  openclaw gateway run --force --auth none --allow-unconfigured \
+    >"$HOME/openclaw-gateway.log" 2>&1 &
+  GW_PID=$!
+}
+ready_now(){
+  # canonical readiness (also applies auto-fixes, incl. "restart the gateway").
+  timeout 45 okx-a2a doctor --fix --json 2>/dev/null | python3 -c "import sys,json
+r=False
+for line in sys.stdin.read().splitlines():
+    line=line.strip()
+    if not line.startswith('{'): continue
+    try: d=json.loads(line)
+    except Exception: continue
+    r = d.get('ready') or (d.get('data') or {}).get('ready') or (d.get('payload') or {}).get('ready')
+    if r: break
+sys.exit(0 if r else 1)" 2>/dev/null
+}
+
+# --- 1) AI BRAIN FIRST: start the OpenClaw gateway, wait for its socket ------
+log "starting OpenClaw gateway (brain, background)"
+start_gateway
+for i in $(seq 1 20); do port_up && { log "gateway listening on :18789"; break; }; sleep 2; done
+
+# --- 2) THE single XMTP listener daemon (background) ------------------------
+# Now that the gateway ws is up, the daemon can dispatch inbound jobs to it.
 log "starting okx-a2a node daemon (single XMTP listener)"
 okx-a2a run >"$HOME/okx-a2a-daemon.log" 2>&1 &
 DAEMON_PID=$!
 sleep 10
 log "daemon log tail -> $(tail -n 6 "$HOME/okx-a2a-daemon.log" 2>/dev/null | tr '\n' ' ' | head -c 400)"
-
-# If the listener died on startup there is nothing to answer calls — exit
-# non-zero so Render restarts the container CLEAN instead of sitting half-alive.
 if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
   log "FATAL: XMTP listener exited on startup -> forcing clean container restart"
   tail -n 20 "$HOME/okx-a2a-daemon.log" 2>/dev/null
   exit 1
 fi
 
-# --- 2) GATE on canonical readiness before going live ----------------------
-# Do NOT start the brain until communication is ACTUALLY up. Run the vendor's
-# canonical repair (doctor --fix) on a loop until ready:true. If it never gets
-# there, exit non-zero -> Render restarts clean rather than lying about "live".
+# --- 3) GATE on canonical readiness (both processes are up now) -------------
+# doctor --fix settles the gateway<->daemon connection (its remaining auto-fix
+# is literally "restart the OpenClaw gateway"). Loop until ready:true; if the
+# gateway got bounced by a fix, bring it back. Never claim live while broken.
 READY=0
-for i in $(seq 1 12); do
-  OUT="$(timeout 45 okx-a2a doctor --fix --json 2>/dev/null)"
-  if printf '%s' "$OUT" | python3 -c "import sys,json
-d=json.load(sys.stdin)
-r=d.get('ready') or (d.get('data') or {}).get('ready') or (d.get('payload') or {}).get('ready')
-sys.exit(0 if r else 1)" 2>/dev/null; then
-    READY=1; log "A2A communication ready after doctor --fix (attempt $i/12)"; break
-  fi
-  log "not ready yet (attempt $i/12) -> $(printf '%s' "$OUT" | tr '\n' ' ' | head -c 160)"
-  sleep 10
+for i in $(seq 1 15); do
+  if ready_now; then READY=1; log "A2A ready:true (attempt $i/15)"; break; fi
+  kill -0 "$GW_PID" 2>/dev/null || { log "gateway down during gating -> restarting"; start_gateway; sleep 5; }
+  log "not ready yet (attempt $i/15)"
+  sleep 8
 done
 if [ "$READY" != "1" ]; then
-  log "FATAL: A2A never reached ready:true after doctor --fix -> forcing clean restart"
-  onchainos agent gate-check --role asp 2>/dev/null | head -c 500
+  log "FATAL: A2A never reached ready:true -> forcing clean restart"
+  onchainos agent gate-check --role asp 2>/dev/null | tr '\n' ' ' | head -c 500
   exit 1
 fi
+timeout 30 okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
+log "A2A READY ✅ — agent 5909 is online and can answer calls"
 
-# --- self-heal loop: keep the listener alive + session fresh + heartbeat ----
+# --- self-heal loop: keep listener + session + heartbeat alive --------------
 (
-  timeout 30 okx-a2a agent refresh --json 2>/dev/null | python3 -c "import sys,json;p=json.load(sys.stdin).get('payload',{});print('[start] listener agents=',p.get('agentCount'),'activeClients=',p.get('activeClients'))" 2>/dev/null || true
   while true; do
     sleep 60
-    # (a) listener liveness — restart it in place (clean locks first) if it died
     if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
       log "listener down -> restarting it"
       pkill -f 'a2a-node' 2>/dev/null || true; sleep 2
@@ -165,7 +186,6 @@ fi
       okx-a2a run >"$HOME/okx-a2a-daemon.log" 2>&1 &
       DAEMON_PID=$!
     fi
-    # (b) session liveness — re-auth from env creds if the wallet session lapsed
     if ! timeout 30 onchainos agent get-my-agents --role asp 2>/dev/null | grep -q '"ok":true'; then
       log "session gone -> re-authenticating"
       timeout 30 onchainos wallet logout >/dev/null 2>&1 || true
@@ -176,7 +196,12 @@ fi
   done
 ) &
 
-# --- 3) AI BRAIN = the OpenClaw gateway (foreground; Gemini). Connects to the
-#     single listener above. This is the container's main process. ---
-log "A2A ready — starting OpenClaw gateway (foreground, Gemini brain)"
-exec openclaw gateway run --force --auth none --allow-unconfigured
+# --- 4) KEEP ALIVE: this script is the main process. Watch the gateway socket;
+#     if nothing is listening on :18789, exit non-zero so Render restarts clean. ---
+while true; do
+  sleep 30
+  if ! port_up; then
+    log "gateway not listening on :18789 -> forcing clean container restart"
+    exit 1
+  fi
+done
