@@ -29,7 +29,7 @@ if [ ! -f "$HOME/.seeded" ]; then
 fi
 
 # --- OpenClaw -> Gemini config: MERGE into the plugin-registered config (don't clobber) ---
-: "${GEMINI_MODEL:=gemini-3.1-flash-lite}"
+: "${GEMINI_MODEL:=gemini-2.5-flash}"
 if [ -z "${GEMINI_API_KEY:-}" ]; then log "FATAL: GEMINI_API_KEY not set"; fi
 python3 - <<'PY'
 import json, os
@@ -38,7 +38,7 @@ try:
     cfg = json.load(open(p))          # keep plugins.entries.okx-a2a from build
 except Exception:
     cfg = {}
-model = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
+model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 cfg.setdefault("agents", {}).setdefault("defaults", {})["model"] = {"primary": f"gemini/{model}"}
 m = cfg.setdefault("models", {}); m["mode"] = "merge"
 m.setdefault("providers", {})["gemini"] = {

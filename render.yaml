@@ -17,7 +17,7 @@ services:
       - key: GEMINI_API_KEY  # free Google AI Studio key (aistudio.google.com/apikey)
         sync: false
       - key: GEMINI_MODEL
-        value: gemini-3.1-flash-lite
+        value: gemini-2.5-flash
       # REQUIRED — AK login. The server re-mints its wallet session from these
       # every boot (the seeded session is device-bound and cannot renew remotely).
       - key: OKX_API_KEY
