@@ -42,7 +42,7 @@ COPY . /app
 
 # identity + all runtime state live on the mounted persistent disk
 ENV HOME=/data
-ENV GEMINI_MODEL=gemini-3-flash
+ENV GEMINI_MODEL=gemini-3.1-flash-lite
 
 RUN chmod +x /app/deploy/start.sh
 CMD ["/app/deploy/start.sh"]
