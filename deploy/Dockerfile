@@ -27,7 +27,7 @@ RUN arch="$(uname -m)"; \
     # into /usr/local/bin (always on the default PATH) makes it resolvable in
     # every shell, and a profile.d line covers HOME=/data login shells too.
     ln -sf /root/.local/bin/onchainos /usr/local/bin/onchainos; \
-    echo 'export PATH="/root/.local/bin:$PATH"' > /etc/profile.d/onchainos.sh; \
+    printf 'export PATH="/root/.local/bin:$PATH"\nexport HOME=/data\nexport ONCHAINOS_HOME=/data/.onchainos\nexport OPENCLAW_STATE_DIR=/root/.openclaw\nexport OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json\n' > /etc/profile.d/onchainos.sh; \
     /root/.local/bin/onchainos --version; \
     /bin/bash -lc 'command -v onchainos'
 ENV PATH="/root/.local/bin:${PATH}"
