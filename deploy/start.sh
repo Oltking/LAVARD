@@ -28,9 +28,22 @@ if [ ! -f "$HOME/.seeded" ]; then
   fi
 fi
 
-# --- OpenClaw -> Gemini config: MERGE into the plugin-registered config (don't clobber) ---
-: "${GEMINI_MODEL:=gemini-2.0-flash}"
-if [ -z "${GEMINI_API_KEY:-}" ]; then log "FATAL: GEMINI_API_KEY not set"; fi
+# --- AI brain provider config (OpenAI-compatible; PROVIDER-SWAPPABLE) --------
+# Default = Gemini (back-compat), but ANY free OpenAI-compatible provider works.
+# Override with env vars — no billing / no card needed:
+#   Groq:       LLM_PROVIDER=groq
+#               LLM_BASE_URL=https://api.groq.com/openai/v1
+#               LLM_MODEL=llama-3.3-70b-versatile
+#               LLM_API_KEY=<groq key>
+#   OpenRouter: LLM_PROVIDER=openrouter
+#               LLM_BASE_URL=https://openrouter.ai/api/v1
+#               LLM_MODEL=meta-llama/llama-3.3-70b-instruct:free
+#               LLM_API_KEY=<openrouter key>
+: "${LLM_PROVIDER:=gemini}"
+: "${LLM_BASE_URL:=https://generativelanguage.googleapis.com/v1beta/openai/}"
+: "${LLM_MODEL:=${GEMINI_MODEL:-gemini-2.0-flash}}"
+: "${LLM_API_KEY:=${GEMINI_API_KEY:-}}"
+if [ -z "${LLM_API_KEY:-}" ]; then log "FATAL: no LLM_API_KEY / GEMINI_API_KEY set"; fi
 python3 - <<'PY'
 import json, os
 p = os.environ["OPENCLAW_CONFIG_PATH"]
@@ -38,14 +51,15 @@ try:
     cfg = json.load(open(p))          # keep plugins.entries.okx-a2a from build
 except Exception:
     cfg = {}
-model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
-cfg.setdefault("agents", {}).setdefault("defaults", {})["model"] = {"primary": f"gemini/{model}"}
+prov  = os.environ["LLM_PROVIDER"]
+model = os.environ["LLM_MODEL"]
+cfg.setdefault("agents", {}).setdefault("defaults", {})["model"] = {"primary": f"{prov}/{model}"}
 m = cfg.setdefault("models", {}); m["mode"] = "merge"
-m.setdefault("providers", {})["gemini"] = {
-    "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai/",
-    "apiKey": os.environ["GEMINI_API_KEY"],
+m.setdefault("providers", {})[prov] = {
+    "baseUrl": os.environ["LLM_BASE_URL"],
+    "apiKey": os.environ["LLM_API_KEY"],
     "api": "openai-completions",
-    "models": [{"id": model, "name": "Gemini"}],
+    "models": [{"id": model, "name": prov.title()}],
 }
 # trust the okx-a2a plugin and unblock its hooks (needed to process agent runs)
 plugins = cfg.setdefault("plugins", {})
@@ -55,9 +69,9 @@ oa["enabled"] = True
 oa.setdefault("hooks", {})["allowConversationAccess"] = True
 os.makedirs(os.path.dirname(p), exist_ok=True)
 json.dump(cfg, open(p, "w"), indent=2)
-print("merged gemini into", p)
+print(f"configured provider={prov} model={model} baseUrl={os.environ['LLM_BASE_URL']}")
 PY
-log "openclaw configured for gemini/$GEMINI_MODEL (plugins preserved)"
+log "brain configured: provider=$LLM_PROVIDER model=$LLM_MODEL"
 
 # --- OpenClaw skill discovery: it reads the okx-ai protocol from a symlink.
 #     Without this the brain won't know how to answer a task envelope. ---
