@@ -20,7 +20,16 @@ RUN arch="$(uname -m)"; \
     mkdir -p /root/.local/bin; \
     curl -fsSL "https://github.com/okx/onchainos-skills/releases/download/${ONCHAINOS_VERSION}/onchainos-${tgt}" -o /root/.local/bin/onchainos; \
     chmod +x /root/.local/bin/onchainos; \
-    /root/.local/bin/onchainos --version
+    # Also expose it on the DEFAULT PATH. The AI brain shells out via a login
+    # shell (`/bin/bash -lc`) to run `onchainos agent next-action|apply|deliver`;
+    # a login shell resets PATH from /etc/profile and drops /root/.local/bin, so
+    # `command -v onchainos` fails and the reply commands never run. Symlinking
+    # into /usr/local/bin (always on the default PATH) makes it resolvable in
+    # every shell, and a profile.d line covers HOME=/data login shells too.
+    ln -sf /root/.local/bin/onchainos /usr/local/bin/onchainos; \
+    echo 'export PATH="/root/.local/bin:$PATH"' > /etc/profile.d/onchainos.sh; \
+    /root/.local/bin/onchainos --version; \
+    /bin/bash -lc 'command -v onchainos'
 ENV PATH="/root/.local/bin:${PATH}"
 
 # --- okx-a2a daemon + OpenClaw runtime + OKX OpenClaw plugin ---
